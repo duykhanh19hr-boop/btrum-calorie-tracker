@@ -1,0 +1,1300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BTRUM — Smart Calorie Tracker & Nutrition Analysis</title>
+
+    <!-- Inter Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    animation: {
+                        'fade-up': 'fadeUp 0.6s ease-out forwards',
+                        'shimmer': 'shimmer 2s infinite',
+                    },
+                    keyframes: {
+                        fadeUp: {
+                            '0%': { opacity: '0', transform: 'translateY(20px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        },
+                        shimmer: {
+                            '0%': { backgroundPosition: '-1000px 0' },
+                            '100%': { backgroundPosition: '1000px 0' },
+                        },
+                    },
+                },
+            },
+        }
+    </script>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+    <style>
+        * {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+
+        :root {
+            --bg-primary: #0f0f1e;
+            --bg-secondary: #1a1a2e;
+            --bg-tertiary: #16213e;
+            --border-color: rgba(255, 255, 255, 0.08);
+            --text-primary: #f0f0f0;
+            --text-secondary: #a0a0a0;
+            --accent-blue: #3b82f6;
+            --accent-purple: #8b5cf6;
+            --accent-emerald: #10b981;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            background: var(--bg-primary);
+            color: var(--text-primary);
+        }
+
+        /* Animations */
+        @keyframes fadeUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes shimmer {
+            0% { background-position: -1000px 0; }
+            100% { background-position: 1000px 0; }
+        }
+
+        .fade-up {
+            animation: fadeUp 0.6s ease-out forwards;
+        }
+
+        /* Stagger animation */
+        .fade-up-delay-1 { animation-delay: 0.1s; }
+        .fade-up-delay-2 { animation-delay: 0.2s; }
+        .fade-up-delay-3 { animation-delay: 0.3s; }
+
+        /* Skeleton loading */
+        .skeleton {
+            background: linear-gradient(90deg, #2a2a3e 25%, #3a3a4e 50%, #2a2a3e 75%);
+            background-size: 1000px 100%;
+            animation: shimmer 2s infinite;
+            border-radius: 0.5rem;
+        }
+
+        /* Glass effect cards */
+        .card-glass {
+            background: rgba(26, 26, 46, 0.5);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .card-glass:hover {
+            background: rgba(26, 26, 46, 0.8);
+            border-color: rgba(59, 130, 246, 0.3);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(59, 130, 246, 0.15);
+        }
+
+        /* Premium inputs */
+        .input-premium {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 0.75rem 1rem;
+            color: var(--text-primary);
+            transition: all 0.3s ease;
+            font-size: 0.95rem;
+        }
+
+        .input-premium:focus {
+            outline: none;
+            background: rgba(255, 255, 255, 0.06);
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .input-premium::placeholder {
+            color: var(--text-secondary);
+        }
+
+        /* Premium buttons */
+        .btn-premium {
+            padding: 0.75rem 1.5rem;
+            border-radius: 10px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            color: white;
+            box-shadow: 0 8px 24px rgba(59, 130, 246, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 32px rgba(59, 130, 246, 0.4);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.08);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.12);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        /* Metric card */
+        .metric-card {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.05), rgba(139, 92, 246, 0.05));
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            border-radius: 16px;
+            padding: 1.5rem;
+            text-align: center;
+        }
+
+        .metric-card .value {
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: var(--text-primary);
+            margin: 0.5rem 0;
+        }
+
+        .metric-card .label {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        /* Navbar styles */
+        .navbar-sticky {
+            position: sticky;
+            top: 0;
+            z-index: 40;
+            background: rgba(15, 15, 30, 0.7);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        /* Results hidden by default */
+        .results-section {
+            display: none;
+        }
+
+        .results-section.show {
+            display: block;
+        }
+
+        /* Food category pill */
+        .category-pill {
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid var(--border-color);
+            padding: 0.5rem 1rem;
+            border-radius: 9999px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.875rem;
+            white-space: nowrap;
+        }
+
+        .category-pill:hover {
+            background: rgba(59, 130, 246, 0.2);
+            border-color: var(--accent-blue);
+        }
+
+        /* Feature card */
+        .feature-card {
+            text-align: center;
+        }
+
+        .feature-card .icon {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .feature-card h3 {
+            font-size: 1.125rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: var(--text-primary);
+        }
+
+        .feature-card p {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+    </style>
+</head>
+
+<body class="bg-slate-950">
+    <!-- NAVBAR -->
+    <div class="navbar-sticky">
+        <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600"></div>
+                <div>
+                    <h1 class="text-lg font-bold text-white">BTRUM</h1>
+                    <p class="text-xs text-gray-400">Calorie Tracker</p>
+                </div>
+            </div>
+
+            <nav class="hidden md:flex items-center gap-8 text-sm">
+                <a href="#dashboard" class="text-gray-300 hover:text-white transition">Dashboard</a>
+                <a href="#browse" class="text-gray-300 hover:text-white transition">Food Database</a>
+                <a href="#insights" class="text-gray-300 hover:text-white transition">Analytics</a>
+                <a href="#about" class="text-gray-300 hover:text-white transition">About</a>
+            </nav>
+
+            <div class="flex items-center gap-3">
+                <div class="hidden sm:flex items-center bg-slate-800 rounded-lg px-3 py-2">
+                    <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                    </svg>
+                    <input type="text" placeholder="Search foods..." class="bg-transparent text-sm w-48 px-2 focus:outline-none text-gray-300 placeholder-gray-500">
+                </div>
+                <button onclick="toggleDarkMode()" class="p-2 rounded-lg hover:bg-slate-800 transition">
+                    <svg class="w-5 h-5 text-yellow-400" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 18a6 6 0 100-12 6 6 0 000 12zM12 2v4m0 12v4M4.22 4.22l2.83 2.83m4 4l2.83 2.83M2 12h4m12 0h4m-17.78 7.78l2.83-2.83m4-4l2.83-2.83"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- HERO SECTION -->
+    <section class="max-w-6xl mx-auto px-6 py-20 text-center fade-up">
+        <h1 class="text-5xl md:text-6xl font-bold mb-6 leading-tight">
+            Find calories fast.<br/>
+            <span class="bg-gradient-to-r from-blue-500 via-purple-500 to-emerald-500 bg-clip-text text-transparent">Track smarter.</span>
+        </h1>
+        <p class="text-xl text-gray-400 max-w-2xl mx-auto mb-12">
+            Search thousands of foods, estimate your calorie intake instantly, and get personalized nutrition insights based on your goals.
+        </p>
+
+        <!-- Search Hero -->
+        <div class="relative mb-8 fade-up fade-up-delay-1">
+            <input type="text" id="heroSearch" placeholder="Search any food..." class="w-full input-premium text-lg py-4 px-6 pr-14">
+            <button class="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-lg hover:bg-slate-700 transition">
+                <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                </svg>
+            </button>
+        </div>
+
+        <!-- CTA Buttons -->
+        <div class="flex flex-col sm:flex-row gap-4 justify-center fade-up fade-up-delay-2">
+            <button onclick="scroll('#calculator')" class="btn-premium btn-primary whitespace-nowrap">
+                Start Tracking Now
+            </button>
+            <button onclick="scroll('#browse')" class="btn-premium btn-secondary whitespace-nowrap">
+                Browse Food Database
+            </button>
+        </div>
+    </section>
+
+    <!-- BROWSE SECTION -->
+    <section id="browse" class="max-w-6xl mx-auto px-6 py-16 fade-up fade-up-delay-3">
+        <h2 class="text-2xl font-bold mb-8">Browse by Category</h2>
+        <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+            <div class="category-pill">🍎 Fruits</div>
+            <div class="category-pill">🥗 Vegetables</div>
+            <div class="category-pill">🥛 Dairy</div>
+            <div class="category-pill">🍗 Proteins</div>
+            <div class="category-pill">🍚 Grains</div>
+            <div class="category-pill">🥜 Nuts & Seeds</div>
+            <div class="category-pill">🍞 Bread</div>
+            <div class="category-pill">🥤 Beverages</div>
+            <div class="category-pill">🍬 Snacks</div>
+            <div class="category-pill">🍝 Pasta</div>
+            <div class="category-pill">🥒 Condiments</div>
+            <div class="category-pill">🍳 Prepared Meals</div>
+        </div>
+    </section>
+
+    <!-- CALCULATOR SECTION -->
+    <section id="calculator" class="max-w-6xl mx-auto px-6 py-16">
+        <h2 class="text-3xl font-bold mb-12">Calculate Your Nutrition</h2>
+
+        <form id="form" class="grid md:grid-cols-2 gap-8">
+            <!-- Profile Card -->
+            <div class="card-glass p-8 fade-up fade-up-delay-1">
+                <h3 class="text-lg font-semibold mb-6 text-white">Personal Profile</h3>
+
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">Name</label>
+                        <input type="text" name="nickname" placeholder="Your name" class="w-full input-premium">
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Gender</label>
+                            <select name="sex" class="w-full input-premium">
+                                <option value="">Select</option>
+                                <option value="male">Male</option>
+                                <option value="female">Female</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Age</label>
+                            <input type="number" name="age" placeholder="25" class="w-full input-premium">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Height (cm)</label>
+                            <input type="number" name="height" placeholder="170" class="w-full input-premium">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Weight (kg)</label>
+                            <input type="number" name="weight" placeholder="70" class="w-full input-premium">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">Activity Level</label>
+                        <select name="activity_level" class="w-full input-premium">
+                            <option value="">Select level</option>
+                            <option value="sedentary">Sedentary (little exercise)</option>
+                            <option value="light">Light (1-3 days/week)</option>
+                            <option value="moderate">Moderate (3-5 days/week)</option>
+                            <option value="active">Active (6-7 days/week)</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">Your Goal</label>
+                        <select name="goal" class="w-full input-premium">
+                            <option value="">Select goal</option>
+                            <option value="lose">Lose Weight</option>
+                            <option value="maintain">Maintain Weight</option>
+                            <option value="gain">Gain Weight</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Food Card -->
+            <div class="card-glass p-8 fade-up fade-up-delay-2">
+                <h3 class="text-lg font-semibold mb-6 text-white">Food & Intake</h3>
+
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">Select Food</label>
+                        <select name="food_name" id="foodSelect" class="w-full input-premium">
+                            <option value="">🔍 Search or select food...</option>
+                            {% for food in foods %}
+                            <option value="{{ food }}">{{ food }}</option>
+                            {% endfor %}
+                        </select>
+                        <p class="text-xs text-gray-500 mt-2">Over 10,000+ foods in database</p>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">Quantity (grams)</label>
+                        <input type="number" name="quantity" placeholder="100" min="1" class="w-full input-premium">
+                    </div>
+
+                    <div class="pt-4">
+                        <button type="submit" class="w-full btn-premium btn-primary text-lg font-semibold">
+                            ⚡ Calculate & Analyze
+                        </button>
+                    </div>
+
+                    <p class="text-xs text-gray-500 text-center">Instant results · No signup required</p>
+                </div>
+            </div>
+        </form>
+    </section>
+
+    <!-- RESULTS SECTION -->
+    <section id="results" class="results-section max-w-6xl mx-auto px-6 py-16">
+        <h2 class="text-3xl font-bold mb-12">Your Results</h2>
+
+        <!-- Metrics -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12 fade-up">
+            <div class="metric-card">
+                <div class="label">Basal Metabolic Rate</div>
+                <div class="value" id="bmrValue">—</div>
+                <div class="text-xs text-gray-500">kcal/day</div>
+            </div>
+            <div class="metric-card">
+                <div class="label">Daily Energy Expenditure</div>
+                <div class="value" id="tdeeValue">—</div>
+                <div class="text-xs text-gray-500">kcal/day</div>
+            </div>
+            <div class="metric-card">
+                <div class="label">Daily Target</div>
+                <div class="value" id="targetValue">—</div>
+                <div class="text-xs text-gray-500">kcal/day</div>
+            </div>
+            <div class="metric-card">
+                <div class="label">Food Calories</div>
+                <div class="value text-blue-400" id="foodCalValue">—</div>
+                <div class="text-xs text-gray-500">calories</div>
+            </div>
+        </div>
+
+        <!-- Status & Remaining -->
+        <div class="grid md:grid-cols-2 gap-6 mb-12 fade-up fade-up-delay-1">
+            <div class="card-glass p-8">
+                <h3 class="text-lg font-semibold mb-4">Daily Status</h3>
+                <div class="space-y-4">
+                    <div>
+                        <div class="flex justify-between mb-2">
+                            <span class="text-gray-400">Calories Consumed</span>
+                            <span class="font-semibold text-white" id="foodCalDisplay">—</span>
+                        </div>
+                        <div class="w-full bg-gray-700 rounded-full h-2">
+                            <div id="consumedBar" class="bg-gradient-to-r from-blue-500 to-purple-600 h-2 rounded-full" style="width: 0%"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="flex justify-between mb-2">
+                            <span class="text-gray-400">Remaining Calories</span>
+                            <span class="font-semibold text-emerald-400" id="remainValue">—</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card-glass p-8 bg-gradient-to-br from-emerald-500/10 to-blue-500/10">
+                <h3 class="text-lg font-semibold mb-4 text-white">💡 Insight</h3>
+                <p class="text-gray-300 leading-relaxed mb-4" id="statusMessage">Fill in your profile and select food to see personalized insights.</p>
+                <div class="text-sm text-gray-400 space-y-2">
+                    <p>✓ Real-time calorie tracking</p>
+                    <p>✓ Personalized recommendations</p>
+                    <p>✓ Goal-based tracking</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Exercise Equivalents -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12 fade-up fade-up-delay-2">
+            <div class="card-glass p-6 text-center">
+                <div class="text-4xl mb-3">🏃</div>
+                <div class="text-sm text-gray-400 mb-2">Running Equivalent</div>
+                <div class="text-2xl font-bold text-white"><span id="runValue">—</span> km</div>
+            </div>
+            <div class="card-glass p-6 text-center">
+                <div class="text-4xl mb-3">🚶</div>
+                <div class="text-sm text-gray-400 mb-2">Walking Equivalent</div>
+                <div class="text-2xl font-bold text-white"><span id="walkValue">—</span> min</div>
+            </div>
+            <div class="card-glass p-6 text-center">
+                <div class="text-4xl mb-3">💪</div>
+                <div class="text-sm text-gray-400 mb-2">Gym Workout</div>
+                <div class="text-2xl font-bold text-white"><span id="gymValue">—</span> min</div>
+            </div>
+        </div>
+
+        <!-- Chart -->
+        <div class="card-glass p-8 fade-up fade-up-delay-3">
+            <h3 class="text-lg font-semibold mb-6">7-Day Calorie History</h3>
+            <div class="relative h-80">
+                <canvas id="calorieChart"></canvas>
+            </div>
+        </div>
+    </section>
+
+    <!-- FEATURES SECTION -->
+    <section id="insights" class="max-w-6xl mx-auto px-6 py-20">
+        <h2 class="text-3xl font-bold text-center mb-16">Why Choose BTRUM</h2>
+        <div class="grid md:grid-cols-4 gap-8">
+            <div class="feature-card card-glass p-8">
+                <div class="icon">⚡</div>
+                <h3>Lightning Fast</h3>
+                <p>Get instant calorie calculations without complex forms or waiting.</p>
+            </div>
+            <div class="feature-card card-glass p-8">
+                <div class="icon">🎯</div>
+                <h3>Goal-Based Tracking</h3>
+                <p>Personalized insights based on your specific fitness and health goals.</p>
+            </div>
+            <div class="feature-card card-glass p-8">
+                <div class="icon">📊</div>
+                <h3>Smart Analytics</h3>
+                <p>Understand your nutrition patterns with visual trends and insights.</p>
+            </div>
+            <div class="feature-card card-glass p-8">
+                <div class="icon">🌍</div>
+                <h3>Extensive Database</h3>
+                <p>10,000+ foods with accurate nutritional information from trusted sources.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer class="border-t border-slate-800 py-16 px-6 mt-20">
+        <div class="max-w-6xl mx-auto">
+            <div class="grid md:grid-cols-4 gap-12 mb-12">
+                <div>
+                    <h4 class="font-semibold text-white mb-4">BTRUM</h4>
+                    <p class="text-sm text-gray-400">Smart nutrition tracking for modern living.</p>
+                </div>
+                <div>
+                    <h4 class="font-semibold text-white mb-4">Product</h4>
+                    <ul class="space-y-2 text-sm text-gray-400">
+                        <li><a href="#" class="hover:text-white transition">Dashboard</a></li>
+                        <li><a href="#" class="hover:text-white transition">Food Database</a></li>
+                        <li><a href="#" class="hover:text-white transition">Analytics</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-semibold text-white mb-4">Resources</h4>
+                    <ul class="space-y-2 text-sm text-gray-400">
+                        <li><a href="#" class="hover:text-white transition">Blog</a></li>
+                        <li><a href="#" class="hover:text-white transition">Support</a></li>
+                        <li><a href="#" class="hover:text-white transition">Privacy</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-semibold text-white mb-4">Connect</h4>
+                    <ul class="space-y-2 text-sm text-gray-400">
+                        <li><a href="#" class="hover:text-white transition">Twitter</a></li>
+                        <li><a href="#" class="hover:text-white transition">LinkedIn</a></li>
+                        <li><a href="#" class="hover:text-white transition">GitHub</a></li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="border-t border-slate-800 pt-8 flex flex-col sm:flex-row justify-between items-center text-sm text-gray-400">
+                <p>© 2026 BTRUM. All rights reserved.</p>
+                <div class="flex gap-6">
+                    <a href="#" class="hover:text-white transition">Terms of Service</a>
+                    <a href="#" class="hover:text-white transition">Privacy Policy</a>
+                    <a href="#" class="hover:text-white transition">Cookie Settings</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- JAVASCRIPT -->
+    <script>
+        let chartInstance = null;
+
+        // Smooth scroll
+        function scroll(target) {
+            document.querySelector(target).scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // Toggle dark mode
+        function toggleDarkMode() {
+            document.documentElement.classList.toggle('dark');
+        }
+
+        // Show skeleton loaders
+        function showSkeletons() {
+            document.getElementById('bmrValue').innerHTML = '<div class="skeleton h-10"></div>';
+            document.getElementById('tdeeValue').innerHTML = '<div class="skeleton h-10"></div>';
+            document.getElementById('targetValue').innerHTML = '<div class="skeleton h-10"></div>';
+            document.getElementById('foodCalValue').innerHTML = '<div class="skeleton h-10"></div>';
+            document.getElementById('remainValue').innerHTML = '<div class="skeleton h-6"></div>';
+        }
+
+        // Update values with animation
+        function updateValue(elementId, value) {
+            const el = document.getElementById(elementId);
+            el.style.opacity = '0';
+            setTimeout(() => {
+                el.innerHTML = typeof value === 'number' ? Math.round(value) : value;
+                el.style.opacity = '1';
+                el.style.transition = 'opacity 0.3s ease';
+            }, 100);
+        }
+
+        // Form submission
+        document.getElementById('form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            showSkeletons();
+
+            const formData = new FormData(e.target);
+            const data = Object.fromEntries(formData.entries());
+
+            try {
+                const res = await fetch('/calculate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data),
+                });
+
+                const result = await res.json();
+
+                // Show results section
+                document.getElementById('results').classList.add('show');
+
+                // Update values
+                updateValue('bmrValue', result.bmr);
+                updateValue('tdeeValue', result.tdee);
+                updateValue('targetValue', result.calorie_target);
+                updateValue('foodCalValue', result.food_calories);
+                updateValue('foodCalDisplay', result.food_calories);
+                updateValue('remainValue', result.calorie_target - result.food_calories);
+                updateValue('runValue', result.exercise_running_km.toFixed(2));
+                updateValue('walkValue', result.exercise_walking_minutes);
+                updateValue('gymValue', result.exercise_gym_minutes);
+
+                // Update progress bar
+                const consumed = result.food_calories;
+                const target = result.calorie_target;
+                const percentage = Math.min((consumed / target) * 100, 100);
+                document.getElementById('consumedBar').style.width = percentage + '%';
+
+                // Update status message
+                const remaining = target - consumed;
+                const msg = remaining >= 0
+                    ? `Bạn vẫn nằm trong mục tiêu calo hôm nay. Còn lại: ${Math.round(remaining)} kcal`
+                    : `Bạn đã vượt mục tiêu calo hôm nay. Vượt quá: ${Math.round(Math.abs(remaining))} kcal`;
+                document.getElementById('statusMessage').innerText = msg;
+
+                // Update chart
+                updateChart(result.calorie_target);
+
+                // Scroll to results
+                scroll('#results');
+
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error calculating. Please try again.');
+            }
+        });
+
+        // Initialize chart
+        function updateChart(target) {
+            const ctx = document.getElementById('calorieChart').getContext('2d');
+
+            if (chartInstance) {
+                chartInstance.destroy();
+            }
+
+            const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+            gradient.addColorStop(0, 'rgba(59, 130, 246, 0.3)');
+            gradient.addColorStop(1, 'rgba(59, 130, 246, 0)');
+
+            chartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                    datasets: [
+                        {
+                            label: 'Calorie Intake',
+                            data: [1800, 1900, 1750, 2000, 1850, 1920, 1800],
+                            borderColor: '#3b82f6',
+                            backgroundColor: gradient,
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.4,
+                            pointRadius: 6,
+                            pointBackgroundColor: '#3b82f6',
+                            pointBorderColor: '#1a1a2e',
+                            pointBorderWidth: 2,
+                        },
+                        {
+                            label: 'Daily Target',
+                            data: Array(7).fill(target),
+                            borderColor: '#8b5cf6',
+                            borderWidth: 2,
+                            borderDash: [5, 5],
+                            fill: false,
+                            pointRadius: 0,
+                            tension: 0.4,
+                        },
+                    ],
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: '#a0a0a0',
+                                font: { size: 12 },
+                            },
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            titleColor: '#fff',
+                            bodyColor: '#fff',
+                            borderColor: '#3b82f6',
+                            borderWidth: 1,
+                        },
+                    },
+                    scales: {
+                        y: {
+                            grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                            ticks: { color: '#a0a0a0' },
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: { color: '#a0a0a0' },
+                        },
+                    },
+                },
+            });
+        }
+    </script>
+</body>
+
+</html>
+    <aside class="sidebar fixed left-0 top-0 w-64 h-screen bg-slate-900 border-r border-slate-800 p-6 overflow-y-auto hidden md:block z-40">
+        <div class="flex items-center gap-3 mb-12 animate-slide-up">
+            <div class="w-12 h-12 rounded-xl gradient-blue-purple"></div>
+            <div>
+                <h1 class="font-bold text-lg text-white">BTRUM</h1>
+                <p class="text-xs text-gray-400">Tracker</p>
+            </div>
+        </div>
+
+        <nav class="space-y-2">
+            <a href="#dashboard" class="nav-item flex items-center gap-3 px-4 py-3 rounded-xl text-white bg-slate-800 border border-blue-500/30 transition-all duration-300 hover:bg-slate-700 active">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-3m0 0l7-4 7 4M5 9v10a1 1 0 001 1h12a1 1 0 001-1V9m-9 11l4-4m0 0l4 4m-4-4v4"></path>
+                </svg>
+                <span>Dashboard</span>
+            </a>
+            <a href="#food-db" class="nav-item flex items-center gap-3 px-4 py-3 rounded-xl text-gray-400 transition-all duration-300 hover:text-white hover:bg-slate-800">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m0 0v10m0-10a2 2 0 00-2-2m2 2a2 2 0 012-2m0 0v-2"></path>
+                </svg>
+                <span>Food Database</span>
+            </a>
+            <a href="#history" class="nav-item flex items-center gap-3 px-4 py-3 rounded-xl text-gray-400 transition-all duration-300 hover:text-white hover:bg-slate-800">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <span>History</span>
+            </a>
+            <a href="#analytics" class="nav-item flex items-center gap-3 px-4 py-3 rounded-xl text-gray-400 transition-all duration-300 hover:text-white hover:bg-slate-800">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                </svg>
+                <span>Analytics</span>
+            </a>
+        </nav>
+
+        <div class="absolute bottom-6 left-6 right-6 space-y-3">
+            <hr class="border-slate-800">
+            <a href="#settings" class="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-400 transition-all duration-300 hover:text-white hover:bg-slate-800">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                </svg>
+                <span>Settings</span>
+            </a>
+        </div>
+    </aside>
+
+    <!-- MOBILE MENU BUTTON -->
+    <button id="sidebarToggle" class="fixed md:hidden bottom-6 right-6 w-14 h-14 rounded-full gradient-blue-purple text-white shadow-lg z-50 flex items-center justify-center btn-ripple">
+        <svg id="menuIcon" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+        </svg>
+    </button>
+
+    <!-- MAIN CONTENT -->
+    <main class="md:ml-64 min-h-screen">
+        <!-- TOP NAVBAR -->
+        <nav class="sticky top-0 z-30 bg-slate-900/80 backdrop-blur border-b border-slate-800">
+            <div class="px-6 py-4 flex justify-between items-center">
+                <div class="hidden md:flex items-center flex-1">
+                    <div class="flex-1 max-w-md">
+                        <div class="relative">
+                            <input type="text" id="searchInput" placeholder="Search foods, exercises..." class="w-full input-glass px-4 py-2 rounded-xl pl-10">
+                            <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-4">
+                    <button id="darkModeToggle" class="p-2 hover:bg-slate-800 rounded-lg transition">
+                        <svg id="sunIcon" class="w-5 h-5 hidden text-yellow-400" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 18a6 6 0 100-12 6 6 0 000 12zM12 2v4m0 12v4M4.22 4.22l2.83 2.83m4 4l2.83 2.83M2 12h4m12 0h4m-17.78 7.78l2.83-2.83m4-4l2.83-2.83"/>
+                        </svg>
+                        <svg id="moonIcon" class="w-5 h-5 text-blue-400" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                        </svg>
+                    </button>
+
+                    <div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 cursor-pointer hover:opacity-80 transition"></div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- DASHBOARD CONTENT -->
+        <div class="p-6 md:p-8 space-y-8">
+            <!-- HEADER -->
+            <div class="fade-in">
+                <h1 class="text-3xl md:text-4xl font-bold text-white mb-2">Welcome back</h1>
+                <p class="text-gray-400">Track your nutrition and stay on top of your health goals</p>
+            </div>
+
+            <!-- SUMMARY CARDS -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 fade-in" style="animation-delay: 0.1s">
+                <!-- BMR Card -->
+                <div class="card-glass p-6 group hover:shadow-glow">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-gray-400 text-sm font-medium">Basal Metabolic Rate</p>
+                            <p class="text-4xl font-bold mt-2"><span id="bmrValue" class="skeleton inline-block w-20 h-10">—</span></p>
+                            <p class="text-xs text-gray-500 mt-3">kcal/day</p>
+                        </div>
+                        <div class="w-12 h-12 rounded-lg bg-blue-500/10 flex items-center justify-center">
+                            <svg class="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5h.01"></path>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TDEE Card -->
+                <div class="card-glass p-6 group hover:shadow-glow-purple" style="animation-delay: 0.05s">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-gray-400 text-sm font-medium">Total Daily Energy Expenditure</p>
+                            <p class="text-4xl font-bold mt-2"><span id="tdeeValue" class="skeleton inline-block w-20 h-10">—</span></p>
+                            <p class="text-xs text-gray-500 mt-3">kcal/day</p>
+                        </div>
+                        <div class="w-12 h-12 rounded-lg bg-purple-500/10 flex items-center justify-center">
+                            <svg class="w-6 h-6 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Daily Target Card -->
+                <div class="card-glass p-6 group hover:shadow-glow" style="animation-delay: 0.1s">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-gray-400 text-sm font-medium">Daily Target</p>
+                            <p class="text-4xl font-bold mt-2"><span id="targetValue" class="skeleton inline-block w-20 h-10">—</span></p>
+                            <p class="text-xs text-gray-500 mt-3">kcal/day</p>
+                        </div>
+                        <div class="w-12 h-12 rounded-lg bg-green-500/10 flex items-center justify-center">
+                            <svg class="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CALORIE TRACKER SECTION -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 fade-in" style="animation-delay: 0.2s">
+                <div class="lg:col-span-2">
+                    <div class="card-glass p-6 md:p-8">
+                        <h2 class="text-xl font-bold text-white mb-6 flex items-center gap-2">
+                            <span class="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center">🍽️</span>
+                            Add Food
+                        </h2>
+
+                        <form id="form" class="space-y-4">
+                            <!-- Profile Section (Collapsible) -->
+                            <div>
+                                <button type="button" id="profileToggle" class="w-full flex items-center justify-between p-4 bg-slate-800/50 rounded-lg hover:bg-slate-800 transition">
+                                    <span class="text-white font-medium">Personal Profile</span>
+                                    <svg class="w-5 h-5 text-gray-400 transition-transform" id="profileIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path>
+                                    </svg>
+                                </button>
+
+                                <div id="profileContent" class="mt-3 space-y-3 hidden">
+                                    <input type="text" name="nickname" placeholder="Your name" class="w-full input-glass px-4 py-2.5 rounded-lg">
+                                    <div class="grid grid-cols-2 gap-3">
+                                        <select name="sex" class="input-glass px-4 py-2.5 rounded-lg">
+                                            <option value="">Select Gender</option>
+                                            <option value="male">Male</option>
+                                            <option value="female">Female</option>
+                                        </select>
+                                        <input type="number" name="age" placeholder="Age" class="input-glass px-4 py-2.5 rounded-lg">
+                                    </div>
+                                    <div class="grid grid-cols-2 gap-3">
+                                        <input type="number" name="height" placeholder="Height (cm)" class="input-glass px-4 py-2.5 rounded-lg">
+                                        <input type="number" name="weight" placeholder="Weight (kg)" class="input-glass px-4 py-2.5 rounded-lg">
+                                    </div>
+                                    <select name="activity_level" class="w-full input-glass px-4 py-2.5 rounded-lg">
+                                        <option value="">Activity Level</option>
+                                        <option value="sedentary">Sedentary (little exercise)</option>
+                                        <option value="light">Light (1-3 days/week)</option>
+                                        <option value="moderate">Moderate (3-5 days/week)</option>
+                                        <option value="active">Active (6-7 days/week)</option>
+                                        <option value="very_active">Very Active (2x per day)</option>
+                                    </select>
+                                    <select name="goal" class="w-full input-glass px-4 py-2.5 rounded-lg">
+                                        <option value="">Select Goal</option>
+                                        <option value="lose">Lose Weight</option>
+                                        <option value="maintain">Maintain</option>
+                                        <option value="gain">Gain Weight</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- Food Section -->
+                            <div>
+                                <label class="block text-white font-medium mb-3">Choose Food</label>
+                                <select name="food_name" id="foodSelect" class="w-full input-glass px-4 py-3 rounded-lg">
+                                    <option value="">🔍 Search or select food...</option>
+                                    {% for food in foods %}
+                                    <option value="{{ food }}">{{ food }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <!-- Quantity -->
+                            <div>
+                                <label class="block text-white font-medium mb-3">Quantity (grams)</label>
+                                <input type="number" name="quantity" placeholder="Enter amount" class="w-full input-glass px-4 py-3 rounded-lg" min="1">
+                            </div>
+
+                            <!-- Submit Button -->
+                            <button type="submit" class="w-full btn-glass py-3 px-4 rounded-xl font-semibold text-white font-medium transition-all duration-300 flex items-center justify-center gap-2 mt-6">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                                </svg>
+                                Calculate & Add
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Quick Stats -->
+                <div class="lg:col-span-1 space-y-6">
+                    <div class="card-glass p-6">
+                        <h3 class="text-sm font-semibold text-gray-400 mb-4 uppercase tracking-wide">Today's Status</h3>
+                        <div class="space-y-4">
+                            <div>
+                                <p class="text-sm text-gray-400 mb-2">Calories Consumed</p>
+                                <p class="text-2xl font-bold"><span id="foodCalValue" class="skeleton inline-block w-20">—</span></p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-400 mb-2">Remaining</p>
+                                <p class="text-2xl font-bold text-green-400"><span id="remainValue" class="skeleton inline-block w-20">—</span></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card-glass p-4 bg-gradient-to-br from-blue-500/10 to-purple-500/10 border border-blue-500/20">
+                        <p class="text-xs text-gray-400 mb-2">💡 Pro Tip</p>
+                        <p class="text-sm text-gray-300">Consistent tracking helps you understand your nutrition patterns and make better choices.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CHARTS & ANALYTICS SECTION -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 fade-in" style="animation-delay: 0.3s">
+                <div class="lg:col-span-2">
+                    <div class="card-glass p-6 md:p-8">
+                        <h2 class="text-xl font-bold text-white mb-6 flex items-center gap-2">
+                            <span class="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center">📈</span>
+                            7-Day Calorie Trend
+                        </h2>
+                        <div class="chart-container">
+                            <canvas id="calorieChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Exercise Equivalents -->
+                <div class="card-glass p-6 md:p-8">
+                    <h2 class="text-xl font-bold text-white mb-6 flex items-center gap-2">
+                        <span class="w-8 h-8 rounded-lg bg-purple-500/20 flex items-center justify-center">⚡</span>
+                        Burn Off
+                    </h2>
+                    <div class="space-y-4">
+                        <div class="flex items-center justify-between p-4 bg-slate-800/50 rounded-lg hover:bg-slate-800 transition">
+                            <div class="flex items-center gap-3">
+                                <span class="text-2xl">🏃</span>
+                                <div>
+                                    <p class="text-sm text-gray-400">Running</p>
+                                    <p class="font-semibold"><span id="runValue">—</span> km</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-between p-4 bg-slate-800/50 rounded-lg hover:bg-slate-800 transition">
+                            <div class="flex items-center gap-3">
+                                <span class="text-2xl">🚶</span>
+                                <div>
+                                    <p class="text-sm text-gray-400">Walking</p>
+                                    <p class="font-semibold"><span id="walkValue">—</span> min</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-between p-4 bg-slate-800/50 rounded-lg hover:bg-slate-800 transition">
+                            <div class="flex items-center gap-3">
+                                <span class="text-2xl">💪</span>
+                                <div>
+                                    <p class="text-sm text-gray-400">Gym</p>
+                                    <p class="font-semibold"><span id="gymValue">—</span> min</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- EMPTY STATE (when no data) -->
+            <div id="emptyState" class="card-glass p-16 text-center">
+                <div class="empty-state">
+                    <div class="w-16 h-16 rounded-full bg-slate-800 flex items-center justify-center mx-auto mb-4">
+                        <span class="text-3xl">📊</span>
+                    </div>
+                    <h3 class="text-xl font-semibold text-white mb-2">No data yet</h3>
+                    <p class="text-gray-400 mb-6">Fill in your profile and add some foods to see your calorie analysis</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- JAVASCRIPT -->
+    <script>
+        // ============= STATE =============
+        let chartInstance = null;
+        let allFoodData = {};
+
+        // ============= SKELETON LOADING =============
+        const skeletonHTML = '<span class="skeleton inline-block w-full h-8 rounded"></span>';
+
+        function showSkeleton() {
+            document.getElementById('bmrValue').className = 'skeleton inline-block w-20 h-10';
+            document.getElementById('tdeeValue').className = 'skeleton inline-block w-20 h-10';
+            document.getElementById('targetValue').className = 'skeleton inline-block w-20 h-10';
+            document.getElementById('foodCalValue').className = 'skeleton inline-block w-20';
+            document.getElementById('remainValue').className = 'skeleton inline-block w-20';
+        }
+
+        // ============= SIDEBAR TOGGLE =============
+        document.getElementById('sidebarToggle').addEventListener('click', function() {
+            const sidebar = document.querySelector('.sidebar');
+            const menuIcon = document.getElementById('menuIcon');
+            sidebar.classList.toggle('sidebar-collapsed');
+            
+            if (sidebar.classList.contains('sidebar-collapsed')) {
+                menuIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>';
+            } else {
+                menuIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>';
+            }
+        });
+
+        // ============= PROFILE TOGGLE =============
+        document.getElementById('profileToggle').addEventListener('click', function(e) {
+            e.preventDefault();
+            const content = document.getElementById('profileContent');
+            const icon = document.getElementById('profileIcon');
+            content.classList.toggle('hidden');
+            icon.style.transform = content.classList.contains('hidden') ? 'rotate(0deg)' : 'rotate(180deg)';
+        });
+
+        // ============= DARK MODE TOGGLE =============
+        document.getElementById('darkModeToggle').addEventListener('click', function() {
+            document.documentElement.classList.toggle('dark');
+            const sunIcon = document.getElementById('sunIcon');
+            const moonIcon = document.getElementById('moonIcon');
+            sunIcon.classList.toggle('hidden');
+            moonIcon.classList.toggle('hidden');
+            localStorage.setItem('theme', document.documentElement.classList.contains('dark') ? 'dark' : 'light');
+        });
+
+        // Initialize dark mode
+        if (localStorage.getItem('theme') === 'light') {
+            document.documentElement.classList.remove('dark');
+            document.getElementById('sunIcon').classList.remove('hidden');
+            document.getElementById('moonIcon').classList.add('hidden');
+        }
+
+        // ============= FORM SUBMISSION =============
+        document.getElementById('form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            showSkeleton();
+
+            const formData = new FormData(this);
+            const data = Object.fromEntries(formData.entries());
+
+            try {
+                const res = await fetch('/calculate', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(data)
+                });
+
+                const result = await res.json();
+
+                // Update values with animation
+                updateValue('bmrValue', result.bmr);
+                updateValue('tdeeValue', result.tdee);
+                updateValue('targetValue', result.calorie_target);
+                updateValue('foodCalValue', result.food_calories);
+                updateValue('remainValue', result.calorie_target - result.food_calories);
+                updateValue('runValue', result.exercise_running_km.toFixed(2));
+                updateValue('walkValue', result.exercise_walking_minutes);
+                updateValue('gymValue', result.exercise_gym_minutes);
+
+                // Hide empty state
+                document.getElementById('emptyState').classList.add('hidden');
+
+                // Update chart
+                updateChart();
+
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error calculating. Please try again.');
+            }
+        });
+
+        function updateValue(elementId, value) {
+            const el = document.getElementById(elementId);
+            el.classList.remove('skeleton');
+            el.style.animation = 'none';
+            setTimeout(() => {
+                el.innerText = typeof value === 'number' ? Math.round(value) : value;
+                el.style.animation = 'fadeIn 0.5s ease-out';
+            }, 10);
+        }
+
+        // ============= CHART INITIALIZATION =============
+        function updateChart() {
+            const ctx = document.getElementById('calorieChart').getContext('2d');
+            
+            if (chartInstance) {
+                chartInstance.destroy();
+            }
+
+            const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+            gradient.addColorStop(0, 'rgba(59, 130, 246, 0.3)');
+            gradient.addColorStop(1, 'rgba(59, 130, 246, 0)');
+
+            chartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                    datasets: [{
+                        label: 'Calorie Intake',
+                        data: [1800, 1900, 1750, 2000, 1850, 1920, 1800],
+                        borderColor: '#3B82F6',
+                        backgroundColor: gradient,
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 6,
+                        pointBackgroundColor: '#3B82F6',
+                        pointBorderColor: '#ffffff',
+                        pointBorderWidth: 2,
+                        pointHoverRadius: 8,
+                        pointHoverBackgroundColor: '#8B5CF6',
+                    }, {
+                        label: 'Daily Target',
+                        data: [1700, 1700, 1700, 1700, 1700, 1700, 1700],
+                        borderColor: '#8B5CF6',
+                        borderWidth: 2,
+                        borderDash: [5, 5],
+                        fill: false,
+                        pointRadius: 0,
+                        tension: 0.4,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: '#9CA3AF',
+                                font: { size: 12, family: "'Inter', sans-serif" },
+                                padding: 15,
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            titleColor: '#fff',
+                            bodyColor: '#E5E7EB',
+                            borderColor: '#3B82F6',
+                            borderWidth: 1,
+                            titleFont: { size: 14, weight: 'bold' },
+                            bodyFont: { size: 13 },
+                            padding: 12,
+                            displayColors: true,
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 2500,
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.05)',
+                                drawBorder: false,
+                            },
+                            ticks: {
+                                color: '#9CA3AF',
+                                font: { size: 12 },
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false,
+                                drawBorder: false,
+                            },
+                            ticks: {
+                                color: '#9CA3AF',
+                                font: { size: 12 },
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // ============= SEARCH FUNCTIONALITY =============
+        document.getElementById('searchInput').addEventListener('input', function(e) {
+            const query = e.target.value.toLowerCase();
+            const foodSelect = document.getElementById('foodSelect');
+            const options = foodSelect.querySelectorAll('option');
+
+            options.forEach(option => {
+                if (option.value === '') return;
+                option.style.display = option.text.toLowerCase().includes(query) ? '' : 'none';
+            });
+        });
+
+        // ============= PAGE LOAD ANIMATION =============
+        window.addEventListener('load', function() {
+            document.body.style.opacity = '1';
+        });
+    </script>
+                label: "Calories",
+                data: [1800, 2000, 1700, 2100, 1900, 2200, 2000],
+                borderColor: "#2563eb"
+            }]
+        }
+    });
+});
+</script>
+
+</body>
+</html>
