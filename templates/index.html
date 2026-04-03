@@ -130,6 +130,11 @@
             box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
         }
 
+        .input-premium:focus-visible {
+            outline: 2px solid var(--accent-blue);
+            outline-offset: 2px;
+        }
+
         .input-premium::placeholder {
             color: var(--text-secondary);
         }
@@ -144,6 +149,15 @@
             cursor: pointer;
             position: relative;
             overflow: hidden;
+        }
+
+        .btn-premium:focus {
+            outline: none;
+        }
+
+        .btn-premium:focus-visible {
+            outline: 2px solid var(--accent-blue);
+            outline-offset: 2px;
         }
 
         .btn-primary {
@@ -166,6 +180,11 @@
         .btn-secondary:hover {
             background: rgba(255, 255, 255, 0.12);
             border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .btn-secondary:focus-visible {
+            outline: 2px solid var(--accent-blue);
+            outline-offset: 2px;
         }
 
         /* Metric card */
@@ -308,10 +327,10 @@
 
         <!-- CTA Buttons -->
         <div class="flex flex-col sm:flex-row gap-4 justify-center fade-up fade-up-delay-2">
-            <button onclick="scroll('#calculator')" class="btn-premium btn-primary whitespace-nowrap">
+            <button type="button" onclick="scrollAndFocus('#calculator', '#nicknameInput')" class="btn-premium btn-primary whitespace-nowrap" aria-label="Start tracking your nutrition now">
                 Start Tracking Now
             </button>
-            <button onclick="scroll('#browse')" class="btn-premium btn-secondary whitespace-nowrap">
+            <button type="button" onclick="scrollAndFocus('#browse', '#foodSelect')" class="btn-premium btn-secondary whitespace-nowrap" aria-label="Browse our food database">
                 Browse Food Database
             </button>
         </div>
@@ -347,8 +366,8 @@
 
                 <div class="space-y-4">
                     <div>
-                        <label class="block text-sm font-medium text-gray-300 mb-2">Name</label>
-                        <input type="text" name="nickname" placeholder="Your name" class="w-full input-premium">
+                        <label for="nicknameInput" class="block text-sm font-medium text-gray-300 mb-2">Name</label>
+                        <input type="text" id="nicknameInput" name="nickname" placeholder="Your name" class="w-full input-premium" aria-label="Your name">
                     </div>
 
                     <div class="grid grid-cols-2 gap-4">
@@ -406,8 +425,8 @@
 
                 <div class="space-y-4">
                     <div>
-                        <label class="block text-sm font-medium text-gray-300 mb-2">Select Food</label>
-                        <select name="food_name" id="foodSelect" class="w-full input-premium">
+                        <label for="foodSelect" class="block text-sm font-medium text-gray-300 mb-2">Select Food</label>
+                        <select name="food_name" id="foodSelect" class="w-full input-premium" aria-label="Search or select food from our database">
                             <option value="">🔍 Search or select food...</option>
                             {% for food in foods %}
                             <option value="{{ food }}">{{ food }}</option>
@@ -599,9 +618,29 @@
     <script>
         let chartInstance = null;
 
-        // Smooth scroll
+        // Smooth scroll with optional focus
         function scroll(target) {
-            document.querySelector(target).scrollIntoView({ behavior: 'smooth' });
+            const element = document.querySelector(target);
+            if (element) {
+                element.scrollIntoView({ behavior: 'smooth' });
+            }
+        }
+
+        // Scroll and focus target element
+        function scrollAndFocus(sectionId, targetId) {
+            const section = document.querySelector(sectionId);
+            const target = document.querySelector(targetId);
+            
+            if (section) {
+                section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                
+                // Focus the target element after scroll completes
+                if (target) {
+                    setTimeout(() => {
+                        target.focus({ preventScroll: true });
+                    }, 600); // Match smooth scroll duration
+                }
+            }
         }
 
         // Toggle dark mode
@@ -760,11 +799,6 @@
         }
     </script>
 </body>
-
-</html>
-    <aside class="sidebar fixed left-0 top-0 w-64 h-screen bg-slate-900 border-r border-slate-800 p-6 overflow-y-auto hidden md:block z-40">
-        <div class="flex items-center gap-3 mb-12 animate-slide-up">
-            <div class="w-12 h-12 rounded-xl gradient-blue-purple"></div>
             <div>
                 <h1 class="font-bold text-lg text-white">BTRUM</h1>
                 <p class="text-xs text-gray-400">Tracker</p>
